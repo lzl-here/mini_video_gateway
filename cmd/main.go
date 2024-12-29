@@ -3,22 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"gateway/internal/middlewares"
-	"gateway/internal/repo"
-	"gorm.io/driver/mysql"
 	"log/slog"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis"
-	"github.com/hertz-contrib/gzip"
-	"gorm.io/gorm"
-
 	"github.com/cloudwego/hertz/pkg/network/netpoll"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 	"github.com/hertz-contrib/cors"
+	"github.com/hertz-contrib/gzip"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
@@ -50,30 +44,6 @@ func loadConfig() *config.AppGatewayConfig {
 	envPath := flag.String("env", "../.env.production", "环境变量文件路径")
 	appConfig := config.LoadGateway(*envPath)
 	return appConfig
-}
-
-func initRepo(appConfig *config.AppGatewayConfig) *repo.Repo {
-	// 初始化mysql
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", appConfig.DBUser, appConfig.DBPass, appConfig.DBHost, appConfig.DBPort, appConfig.DBTableName)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		SkipDefaultTransaction: true,
-	})
-	if err != nil {
-		slog.Error("开启DB失败", "err", err)
-	}
-	slog.Info("成功连接到DB")
-
-	// 初始化redis
-	cacheCli := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", appConfig.CacheHost, appConfig.CachePort),
-		Password: appConfig.CachePass,
-	})
-	_, err = cacheCli.Ping().Result()
-	if err != nil {
-		slog.Error("开启Cache失败", "err", err)
-	}
-	slog.Info("成功连接到Cache")
-	return repo.NewRepo(repo.NewDBRepo(db), repo.NewCacheRepo(cacheCli))
 }
 
 // 初始化日志
